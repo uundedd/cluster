@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dadras-ingress-shahidi
+  namespace: shahidi
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - kapp.webpooyan.com
+      secretName: kapp-webpooyan-com-tls
+  rules:
+    - host: kapp.webpooyan.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dadras-web-service
+                port:
+                  number: 80

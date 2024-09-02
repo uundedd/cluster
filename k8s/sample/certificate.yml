@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kapp-webpooyan-com-certificate
+  namespace: shahidi
+spec:
+  dnsNames:
+    - kapp.webpooyan.com
+  secretName: kapp-webpooyan-com-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
