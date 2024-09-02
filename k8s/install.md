@@ -125,3 +125,12 @@ also you can use internet ip address instead 0.0.0.0
 
 you can read more in this document 
 https://documentation.ubuntu.com/canonical-kubernetes/latest/
+
+
+## other related command
+
+
+### for download chart from repository 
+for example download harbor chart from harbor repository 
+
+helm fetch harbor/harbor --untar
