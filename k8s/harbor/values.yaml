@@ -136,7 +136,7 @@ persistence:
       storageClass: ""
       subPath: ""
       accessMode: ReadWriteOnce
-      size: 40Gi
+      size: 80Gi
       annotations: {}
     jobservice:
       jobLog:
@@ -278,9 +278,9 @@ harborAdminPassword: "Harbor12345"
 # in each component tls cert files need to provided in advance.
 internalTLS:
   # If internal TLS enabled
-  enabled: true
+  enabled: false
   # enable strong ssl ciphers (default: false)
-  strong_ssl_ciphers: true
+  strong_ssl_ciphers: false
   # There are three ways to provide tls
   # 1) "auto" will generate cert automatically
   # 2) "manual" need provide cert file manually in following value
