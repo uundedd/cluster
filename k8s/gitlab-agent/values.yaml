@@ -1,0 +1,153 @@
+# -- configure the used image
+image:
+  # -- used image repository
+  repository: "kharbor.webpooyan.com/gitlab/agentk"
+  # -- set the `pullPolicy`
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag whose default is the chart appVersion.
+  tag: "v17.3.1"
+
+# -- Optionally set `imagePullSecrets`
+imagePullSecrets: []
+# -- Override the default chart name
+nameOverride: ""
+# -- Override the full chart name
+fullnameOverride: ""
+
+# -- set number of replicas
+replicas: 2
+# -- set maxSurge for rolling update
+maxSurge: 1
+# -- set maxUnavailable for rolling update
+maxUnavailable: 0
+
+# -- rbac settings
+rbac:
+  # -- Specifies whether RBAC resources should be created
+  create: true
+  # -- Set to a rolename to use existing role.
+  # @default -- cluster-admin
+  useExistingRole:
+
+# -- serviceAccount settings
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use.
+  # @default -- name is generated using the fullname template
+  name:
+
+# -- set podSecurityContext
+# Example: `fsGroup: 2000`
+podSecurityContext: {}
+
+# -- set securityContext
+# Example
+# `{ "capabilities": { "drop": [ "ALL" ] }, "readOnlyRootFilesystem": true, "runAsNonRoot": true, "runAsUser": 1000 }`
+securityContext: {}
+
+# -- set podAnnotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/metrics"
+  prometheus.io/port: "8080"
+
+serviceMonitor:
+  # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
+  enabled: false
+
+# -- configure the agent
+config:
+  # -- The user-facing URL for the in-cluster `agentk`
+  kasAddress: "wss://kagent.kgit.webpooyan.com"
+  # -- add kas-headers
+  # Example:
+  # `[ "Cookie: gitlab-canary" ]`
+  kasHeaders: []
+  # -- put your agent token here
+  token: glagent-_D1ubuGyZQmgYQ-6ZujGiRqWsza38L6i5TQzKiiSLxjpS7A4Tw
+  # -- name of the secret storing the token
+  secretName:
+  # -- PEM certificate file to use to verify config.kasAddress. Useful if config.kasAddress is self-signed.
+  kasCaCert:
+
+  observability:
+    enabled: true
+    # -- Application-level TLS configuration for the observability service
+    tls:
+      # -- enable application-level TLS for the observability service
+      enabled: false
+      # -- Public key for the TLS certificate for the observability service
+      cert:
+      # -- Private key for the TLS certificate for the observability service
+      key:
+      secret:
+        # -- when true, creates a certificate with values cert and key from  for the observability service
+        create: false
+        # -- secret name for the observability service
+        name: "gitlab-agent-observability"
+
+  operational_container_scanning:
+    # -- enables automatic RBAC creation for the operational container scanning feature
+    enabled: true
+
+# -- Add additional environment settings to the pod. Can be useful in
+# proxy environments
+extraEnv: []
+
+# -- Add additional args settings to the pod.
+extraArgs: []
+
+# -- Add extra volume mounts
+extraVolumeMounts: []
+
+# -- Add extra volumes
+extraVolumes: []
+
+# -- set resource parameters
+# Example:
+# `{ "limits": { "cpu": "100m", "memory": "128Mi" }, "requests": { "cpu": "100m", "memory": "128Mi" }}`
+resources: {}
+
+# -- nodeSelector
+nodeSelector:
+  job: develop
+tolerations:
+  - key: "job"
+    operator: "Equal"
+    value: "develop"
+
+# -- set affinity
+affinity: {}
+
+# -- set priorityClassName
+priorityClassName: ""
+
+# -- set runtimeClassName
+runtimeClassName: ""
+
+# -- list of hosts and IPs that will be injected into the pod's hosts file
+# Example:
+# `[{ "ip": "127.0.0.1", "hostnames": [ "foo.local", "bar.local" ]}, { "ip": "10.1.2.3", "hostnames": [ "foo.remote", "bar.remote" ]}]`
+hostAliases: []
+
+# -- Labels to be added to each agent pod
+# Example:
+# `role: developer`
+podLabels: {}
+
+# -- Additional labels to be added to all created objects
+additionalLabels: {}
+
+# -- Optional initContainers definition
+initContainers: []
+
+# --
+# Show the last 80 lines or 2048 bytes (whichever is smaller) of pod logs in kubectl describe output when
+# container exits with non-zero exit code # Useful for when pod logs are cycled out of a node post-crash
+# before an operator can capture the logs
+# Valid values are 'File' which is the Kubernetes API default, or 'FallbackToLogsOnError'
+# See <https://kubernetes.io/docs/tasks/debug/debug-application/determine-reason-pod-failure/> for more information
+terminationMessagePolicy: FallbackToLogsOnError

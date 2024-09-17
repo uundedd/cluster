@@ -1,0 +1,141 @@
+include:
+  - template: Workflows/MergeRequest-Pipelines.gitlab-ci.yml
+
+default:
+  tags:
+    - gitlab-org
+
+stages:
+  - test
+  - docs
+  - publish
+
+variables:
+  HELM_INSTALL_IMAGE: registry.gitlab.com/gitlab-org/cluster-integration/helm-install-image:v0.450-helm-3.14.4-kube-1.29.4-alpine-3.19.1
+
+  # TEST CONFIGURATION
+  CHART_NAME: 'gitlab/gitlab-agent'
+  CHART_RELEASE_NAME: 'gitlab-agent'
+  CHART_VALUE_KAS_ADDRESS: 'wss://kas.gitlab.example.com'
+
+lint:helm:
+  image: $HELM_INSTALL_IMAGE
+  script:
+    - helm lint
+
+docs:helm-docs:
+  stage: docs
+  variables:
+    GO_VERSION: "1.21.5"
+  script:
+    - wget -q https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz
+    - tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
+    - export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
+    - go version
+    - go install github.com/norwoodj/helm-docs/cmd/helm-docs@latest
+    - helm-docs -s file
+    - if ! git diff --quiet; then echo "difference between README.md and values.yaml detected, please update using 'helm-docs -s file'"; exit 1; fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - values.yaml
+        - README.md.gotmpl
+
+publish:
+  stage: publish
+  script:
+    - curl 
+      --fail-with-body
+      --request POST
+      --form "token=${CHARTS_TRIGGER_TOKEN}"
+      --form ref=master
+      --form "variables[CHART_NAME]=${CI_PROJECT_NAME}"
+      --form "variables[RELEASE_REF]=${CI_COMMIT_REF_NAME}"
+      https://gitlab.com/api/v4/projects/2860651/trigger/pipeline
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$/ && $CI_PROJECT_URL == "https://gitlab.com/gitlab-org/charts/gitlab-agent"'
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$/ && $CI_PROJECT_URL == "https://gitlab.com/gitlab-org/security/charts/gitlab-agent"'
+
+.create_secret: &create_secret
+  - kubectl create secret generic test-secret --from-literal=token='FAKE-AGENT-TOKEN'
+
+.helm_install_from_local_dir: &helm_install_from_local_dir
+  - helm install "$CHART_RELEASE_NAME" . --wait --set config.kasAddress="$CHART_VALUE_KAS_ADDRESS" $HELM_INSTALL_ARGS
+
+.helm_install_published_chart: &helm_install_published_chart
+  - helm repo add gitlab https://charts.gitlab.io
+  - helm repo update
+  - helm install "$CHART_RELEASE_NAME" "$CHART_NAME" --wait --set config.kasAddress="$CHART_VALUE_KAS_ADDRESS" $HELM_INSTALL_ARGS
+
+.helm_upgrade_from_local_dir: &helm_upgrade_from_local_dir
+  - helm upgrade $CHART_RELEASE_NAME . --wait --reuse-values
+
+test:local:install:secret:
+  extends: .k3s
+  script:
+    - *create_secret
+    - *helm_install_from_local_dir
+  variables:
+    HELM_INSTALL_ARGS: --set config.secretName='test-secret'
+
+test:local:install:token:
+  extends: .k3s
+  script:
+    - *helm_install_from_local_dir
+  variables:
+    HELM_INSTALL_ARGS: --set config.token='FAKE-AGENT-TOKEN'
+
+test:local:upgrade:secret:
+  extends: .k3s
+  script:
+    - *create_secret
+    - *helm_install_from_local_dir
+    - *helm_upgrade_from_local_dir
+  variables:
+    HELM_INSTALL_ARGS: --set config.secretName='test-secret'
+    HELM_UPGRADE_ARGS: $HELM_INSTALL_ARGS
+
+test:local:upgrade:token:
+  extends: .k3s
+  script:
+    - *helm_install_from_local_dir
+    - *helm_upgrade_from_local_dir
+  variables:
+    HELM_INSTALL_ARGS: --set config.token='FAKE-AGENT-TOKEN'
+    HELM_UPGRADE_ARGS: $HELM_INSTALL_ARGS
+
+test:breaking:upgrade:secret:
+  extends: .k3s
+  script:
+    - *create_secret
+    - *helm_install_published_chart
+    - *helm_upgrade_from_local_dir
+  variables:
+    HELM_INSTALL_ARGS: --set config.secretName='test-secret'
+    HELM_UPGRADE_ARGS: $HELM_INSTALL_ARGS
+
+test:breaking:upgrade:token:
+  extends: .k3s
+  script:
+    - *helm_install_published_chart
+    - *helm_upgrade_from_local_dir
+  variables:
+    HELM_INSTALL_ARGS: --set config.token='FAKE-AGENT-TOKEN'
+    HELM_UPGRADE_ARGS: $HELM_INSTALL_ARGS
+
+.k3s:
+  stage: test
+  image: $HELM_INSTALL_IMAGE
+  services:
+    - name: registry.gitlab.com/gitlab-org/cluster-integration/test-utils/k3s-gitlab-ci/releases/v1.29.0-k3s1
+      alias: k3s
+  tags:
+    - gitlab-org-docker
+  before_script:
+    - apk add --update --no-cache curl
+    # NOTE: libcurl in the job image is v7.x which is too old for the installed curl v7.x
+    - apk upgrade libcurl
+    - curl -f k3s:8081 > k3s.yaml
+    - export KUBECONFIG=$(pwd)/k3s.yaml
+    - kubectl version
+    - kubectl cluster-info
