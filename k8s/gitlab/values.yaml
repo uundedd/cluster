@@ -50,6 +50,23 @@ global:
 
   ## https://docs.gitlab.com/charts/installation/deployment#deploy-the-community-edition
   edition: ce
+  communityImages:
+    # Default repositories used to pull Gitlab Community Edition images.
+    # See the image.repository and workhorse.repository template helpers.
+    migrations:
+      # repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-toolbox-ce
+      repository: kharbor.webpooyan.com/gitlab/gitlab-toolbox-ce
+    sidekiq:
+      # repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-sidekiq-ce
+      repository: kharbor.webpooyan.com/gitlab/gitlab-sidekiq-ce
+    toolbox:
+      repository: kharbor.webpooyan.com/gitlab/gitlab-toolbox-ce
+    webservice:
+      # repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-webservice-ce
+      repository: kharbor.webpooyan.com/gitlab/gitlab-webservice-ce
+    workhorse:
+      # repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-workhorse-ce
+      repository: kharbor.webpooyan.com/gitlab/gitlab-workhorse-ce
 
   ## https://docs.gitlab.com/charts/charts/globals#gitlab-version
   gitlabVersion: "17.3.1"
@@ -68,12 +85,15 @@ global:
     https: true
     externalIP: 185.73.114.89
     ssh:
-    gitlab: {}
-    minio: {}
+    gitlab:
+      name: web.kgit.webpooyan.com
+    minio:
+      name: io.kgit.webpooyan.com
     registry: {}
     tls: {}
     smartcard: {}
-    kas: {}
+    kas:
+      name: kagent.kgit.webpooyan.com
     pages: {}
 
   ## https://docs.gitlab.com/charts/charts/globals#configure-ingress-settings
@@ -86,7 +106,8 @@ global:
     # class:
     annotations: {}
     enabled: true
-    tls: {}
+    tls:
+      external: true
     #   enabled: true
     #   secretName:
     path: /
@@ -111,7 +132,7 @@ global:
 
   # Override enablement of ServiceMonitor and PodMonitor objects.
   monitoring:
-    enabled: false
+    enabled: true
 
   gitlab:
     ## Enterprise license for this GitLab installation
@@ -126,7 +147,8 @@ global:
   ## Secret created according to https://docs.gitlab.com/charts/installation/secrets#initial-root-password
   ## If allowing shared-secrets generation, this is OPTIONAL.
   initialRootPassword:
-    key: Gitlab12345
+    {}
+    # key: Gitlab12345
     # secret: RELEASE-gitlab-initial-root-password
     # key: password
 
@@ -833,7 +855,7 @@ global:
   certificates:
     image:
       # repository: registry.gitlab.com/gitlab-org/build/cng/certificates
-      repository: harbor.hyvatech.com/gitlab/certificates
+      repository: kharbor.webpooyan.com/gitlab/certificates
       # Default tag is `global.gitlabVersion` or `master` if the former one is undefined.
       # tag: master
       # pullPolicy: IfNotPresent
@@ -852,7 +874,7 @@ global:
   ## kubectl image used by hooks to carry out specific jobs
   kubectl:
     image:
-      repository: harbor.hyvatech.com/gitlab/kubectl
+      repository: kharbor.webpooyan.com/gitlab/kubectl
       # Default tag is `global.gitlabVersion` or `master` if the former one is undefined.
       # tag: master
       # pullPolicy: IfNotPresent
@@ -863,7 +885,7 @@ global:
       fsGroup: 65534
   gitlabBase:
     image:
-      repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-base
+      repository: kharbor.webpooyan.com/gitlab/gitlab-base
       # Default tag is `global.gitlabVersion` or `master` if the former one is undefined.
       # Charts using this image as init container support further overrides with `init.image.tag`.
       # tag: master
@@ -1005,7 +1027,7 @@ nginx-ingress: &nginx-ingress
     scope:
       enabled: true
     metrics:
-      enabled: false
+      enabled: true
       service:
         annotations:
           gitlab.com/prometheus_scrape: "true"
@@ -1213,6 +1235,22 @@ prometheus:
 ## https://docs.gitlab.com/charts/installation/deployment.html#redis
 redis:
   install: true
+  image:
+    registry: kharbor.webpooyan.com
+    repository: gitlab/redis
+  master:
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
+    persistence:
+      enabled: true
+      storageClass: "redis-nfs"
+      accessModes:
+        - ReadWriteMany
+      size: 20Gi
   auth:
     existingSecret: gitlab-redis-secret
     existingSecretKey: redis-password
@@ -1221,13 +1259,10 @@ redis:
   cluster:
     enabled: false
   metrics:
-    enabled: false
-  nodeSelector:
-    job: develop
-  tolerations:
-    - key: "job"
-      operator: "Equal"
-      value: "develop"
+    enabled: true
+    image:
+      registry: kharbor.webpooyan.com
+      repository: gitlab/redis-exporter
 ## Installation & configuration of stable/postgresql
 ## See requirements.yaml for current version
 postgresql:
@@ -1244,6 +1279,8 @@ postgresql:
       adminPasswordKey: postgresql-postgres-password
       userPasswordKey: '{{ include "gitlab.psql.password.key" $ }}'
   image:
+    registry: kharbor.webpooyan.com
+    repository: gitlab/postgresql
     tag: 14.8.0
   primary:
     initdb:
@@ -1254,20 +1291,35 @@ postgresql:
         subPath: init_revision.sh
     podAnnotations:
       postgresql.gitlab/init-revision: "1"
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
+    persistence:
+      enabled: true
+      storageClass: "postgres-nfs"
+      accessModes:
+        - ReadWriteMany
+      size: 20Gi
   metrics:
-    enabled: false
+    enabled: true
+    image:
+      registry: kharbor.webpooyan.com
+      repository: gitlab/postgres-exporter
     service:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9187"
         gitlab.com/prometheus_scrape: "true"
         gitlab.com/prometheus_port: "9187"
-  nodeSelector:
-    job: develop
-  tolerations:
-    - key: "job"
-      operator: "Equal"
-      value: "develop"
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
 
     ## Optionally define additional custom metrics
     ## ref: https://github.com/wrouesnel/postgres_exporter#adding-new-metrics-via-a-config-file
@@ -1290,7 +1342,13 @@ shared-secrets:
       # pullPolicy: IfNotPresent
       # pullSecrets: []
       # repository: registry.gitlab.com/gitlab-org/build/cng/cfssl-self-sign
-      repository: harbor.hyvatech.com/gitlab/cfssl-self-sign
+      repository: kharbor.webpooyan.com/gitlab/cfssl-self-sign
+      nodeSelector:
+        job: develop
+      tolerations:
+        - key: "job"
+          operator: "Equal"
+          value: "develop"
       # Default tag is `master`, overridable by `global.gitlabVersion`.
       # tag: master
     keyAlgorithm: "rsa"
@@ -1321,18 +1379,25 @@ shared-secrets:
 ## Installation & configuration of gitlab/gitlab-runner
 ## See requirements.yaml for current version
 gitlab-runner:
+  image:
+    registry: kharbor.webpooyan.com
+    image: gitlab/gitlab-runner
   install: true
   rbac:
     create: true
   runners:
     locked: false
+    tags: "cluster"
+    privileged: true
     # Set secret to an arbitrary value because the runner chart renders the gitlab-runner.secret template only if it is not empty.
     # The parent/GitLab chart overrides the template to render the actual secret name.
     secret: "nonempty"
     config: |
       [[runners]]
         [runners.kubernetes]
-        image = "ubuntu:22.04"
+        helper_image = "kharbor.webpooyan.com/gitlab/gitlab-runner-helper:x86_64-v17.3.1"
+        image = "kharbor.webpooyan.com/gitlab/docker:dind-node-18"
+        privileged = true
         {{- if .Values.global.minio.enabled }}
         [runners.cache]
           Type = "s3"
@@ -1365,28 +1430,107 @@ traefik:
 ## Settings for individual sub-charts under GitLab
 ## Note: Many of these settings are configurable via globals
 gitlab:
-  ## https://docs.gitlab.com/charts/charts/gitlab/toolbox
-  selfsign:
+  gitlab-shell:
     image:
+      repository: kharbor.webpooyan.com/gitlab/gitlab-shell
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
+  ## https://docs.gitlab.com/charts/charts/gitlab/toolbox
+  gitlab-pages:
+    image:
+      repository: kharbor.webpooyan.com/gitlab/gitlab-pages
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
+  gitaly:
+    image:
+      # repository: registry.gitlab.com/gitlab-org/build/cng/gitaly
+      repository: kharbor.webpooyan.com/gitlab/gitaly
+    persistence:
+      enabled: true
+      storageClass: "gitaly-nfs"
+      accessMode: ReadWriteMany
+      size: 50Gi
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
+  praefect:
+    image:
+      # repository: registry.gitlab.com/gitlab-org/build/cng/gitaly
+      repository: kharbor.hyvatech.com/gitlab/gitaly
   kas:
+    image:
+      repository: kharbor.webpooyan.com/gitlab/gitlab-kas
     ingress:
       tls:
-        secretName: RELEASE-kas-tls
+        secretName: kas-kgit-webpooyan-com-tls
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
   webservice:
     ingress:
       tls:
-        secretName: RELEASE-registry-tls
-  nodeSelector:
-    job: develop
-  tolerations:
-    - key: "job"
-      operator: "Equal"
-      value: "develop"
+        secretName: gitlab-kgit-webpooyan-com-tls
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
+  gitlab-exporter:
+    image:
+      repository: kharbor.webpooyan.com/gitlab/gitlab-exporter
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
+  migrations:
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
+  sidekiq:
+    # nodeSelector:
+    #   job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
   toolbox:
-    replicas: 1
-    antiAffinityLabels:
-      matchLabels:
-        app: gitaly
+    nodeSelector:
+      job: develop
+    tolerations:
+      - key: "job"
+        operator: "Equal"
+        value: "develop"
+  # nodeSelector:
+  #   job: develop
+  # tolerations:
+  #   - key: "job"
+  #     operator: "Equal"
+  #     value: "develop"
+  # toolbox:
+  #   replicas: 1
+  #   antiAffinityLabels:
+  #     matchLabels:
+  #       app: gitaly
   ## https://docs.gitlab.com/charts/charts/gitlab/migrations
   #   migrations:
   #     enabled: false
@@ -1408,9 +1552,19 @@ gitlab:
   ## https://docs.gitlab.com/charts/charts/gitlab/praefect
   #   praefect:
 minio:
+  image: "kharbor.webpooyan.com/gitlab/minio"
+  imageTag: "RELEASE.2017-12-28T01-21-00Z"
+  minioMc:
+    image: kharbor.webpooyan.com/gitlab/mc
+    tag: "RELEASE.2018-07-13T00-53-22Z"
+  persistence:
+    enabled: true
+    storageClass: "minio-nfs"
+    accessMode: ReadWriteMany
+    size: 30Gi
   ingress:
     tls:
-      secretName: RELEASE-minio-tls
+      secretName: minio-kgit-webpooyan-com-tls
   nodeSelector:
     job: develop
   tolerations:
@@ -1435,5 +1589,5 @@ registry:
   install: false
   ingress:
     tls:
-      secretName: RELEASE-registry-tls
+      secretName: registry-kgit-webpooyan-com-tls
   enabled: false
