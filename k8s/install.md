@@ -119,7 +119,67 @@ socat TCP-LISTEN:80,fork TCP:0.0.0.0:30244 &
 
 also you can use internet ip address instead 0.0.0.0
 
+### create service for enable port forward in background and restart 
 
+create file in  /etc/systemd/system/socat-port-forward.service
+
+```bash 
+nano /etc/systemd/system/socat-port-forward.service
+
+```
+
+paste follow command 
+
+```service
+[Unit]
+Description=Socat Port Forwarding
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/socat TCP-LISTEN:80,fork TCP:localhost:30225
+
+[Install]
+WantedBy=multi-user.target
+```
+
+set owner and access mode 
+
+```bash
+chmod 644  /etc/systemd/system/socat-port-forward.service
+```
+
+enable service 
+
+```bash
+sudo systemctl enable socat-port-forward
+```
+
+and start service 
+
+```bash
+sudo systemctl start socat-port-forward
+```
+
+## ip table command for port forward 
+
+### list rules
+
+```bash
+iptables -t nat -v -L -n --line-number
+```
+
+### port forward
+
+```bash
+iptables -t nat -A PREROUTING -p tcp --dport 80 -j DNAT --to-destination 127.0.0.1:30225
+```
+
+
+### delete 
+
+```bash
+iptables -t nat --delete POSTROUTING 1
+```
 
 ## Other config 
 
@@ -129,8 +189,20 @@ https://documentation.ubuntu.com/canonical-kubernetes/latest/
 
 ## other related command
 
+### force remove pod or anything 
+
+```bash 
+kubectl delete pod <podname> --grace-period=0 --force --namespace <namespace> 
+```
 
 ### for download chart from repository 
 for example download harbor chart from harbor repository 
 
 helm fetch harbor/harbor --untar
+
+
+### important information 
+
+default storage path 
+
+/var/snap/k8s/common/rawfile-storage/*
