@@ -1,0 +1,6 @@
+{
+    "master": {
+        "autoBackup": true,
+        "backupBranchName": "mirkhalili-backup-master"
+    }
+}
