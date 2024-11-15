@@ -1,12 +1,12 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: kapp-webpooyan-com-certificate
-  namespace: shahidi
+  name: kapp-dadras-certificate
+  namespace: chabok
 spec:
   dnsNames:
-    - kapp.webpooyan.com
-  secretName: kapp-webpooyan-com-tls
+    - dadras.lawyerchabok.ir
+  secretName: kapp-dadras-tls
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer

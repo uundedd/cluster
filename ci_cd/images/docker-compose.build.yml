@@ -13,3 +13,4 @@ services:
         - type=local,dest=./.docker-image/dind-node-18
         
     image: ${IMAGE_REGISTRY}/gitlab/docker:dind-node-18
+  
