@@ -1,0 +1,38 @@
+services:
+  test:
+    build:
+      context: ./
+      dockerfile: ./test/Dockerfile
+      args:
+        - IMAGE_REGISTRY=${IMAGE_REGISTRY}
+      cache_from:
+        - type=registry,ref=${IMAGE_REGISTRY}/base-app/test:13.8.1-cache,mode=max,image-manifest=true
+      cache_to:
+        - type=registry,ref=${IMAGE_REGISTRY}/base-app/test:13.8.1-cache,mode=max,image-manifest=true
+    image: ${IMAGE_REGISTRY}/${PROJECT_NAME}/test:13.8.1
+  dind-node-18:
+    build:
+      context: ./
+      dockerfile: ./dind/Dockerfile
+      args:
+        - IMAGE_REGISTRY=${IMAGE_REGISTRY}
+        - BUILDKIT=1
+      cache_from:
+        - type=registry,ref=${IMAGE_REGISTRY}/gitlab/docker:dind-node-18-cache
+      cache_to:
+        - type=registry,ref=${IMAGE_REGISTRY}/gitlab/docker:dind-node-18-cache
+        
+    image: ${IMAGE_REGISTRY}/gitlab/docker:dind-node-18
+  rouingmanager: 
+    build:
+      context: ./
+      dockerfile: ./rouingmanager/Dockerfile
+      args:
+        - IMAGE_REGISTRY=${IMAGE_REGISTRY}
+        - BUILDKIT=1
+      cache_from:
+        - type=registry,ref=${IMAGE_REGISTRY}/base-app/rouingmanager:latest-cache3
+      cache_to:
+        - type=registry,ref=${IMAGE_REGISTRY}/base-app/rouingmanager:latest-cache
+        
+    image: ${IMAGE_REGISTRY}/base-app/rouingmanager:latest

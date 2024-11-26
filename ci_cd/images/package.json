@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "base": "docker compose --env-file .env -f docker-compose.build.yml ",
+    "base": "docker compose --env-file .env ",
     "basetrue": "docker-compose -f docker-compose.build.yml ", 
     "build": "npm run base$npm_config_old -- build "
   },
