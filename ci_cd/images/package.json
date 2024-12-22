@@ -5,7 +5,8 @@
   "scripts": {
     "base": "docker compose --env-file .env ",
     "basetrue": "docker-compose -f docker-compose.build.yml ", 
-    "build": "npm run base$npm_config_old -- build "
+    "build": "npm run base$npm_config_old -- build " ,
+    "push": "npm run base$npm_config_old -- push"
   },
   "keywords": [
     "ci_cd" , 
