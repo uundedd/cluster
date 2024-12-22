@@ -1,0 +1,46 @@
+affinity: {}
+image:
+  pullPolicy: IfNotPresent
+  repository: harbor.hyvatech.com/library/nfs-subdir-external-provisioner
+  tag: v4.0.2
+imagePullSecrets: []
+labels: {}
+leaderElection:
+  enabled: true
+nfs:
+  mountOptions: null
+  path: /var/kuber_nfs_storage
+  reclaimPolicy: Retain
+  server: 192.168.31.238
+  volumeName: nfs-subdir-external-provisioner-root
+nodeSelector: {}
+podAnnotations: {}
+podDisruptionBudget:
+  enabled: false
+  maxUnavailable: 1
+podSecurityContext: {}
+podSecurityPolicy:
+  enabled: false
+rbac:
+  create: true
+replicaCount: 1
+resources: {}
+securityContext: {}
+serviceAccount:
+  annotations: {}
+  create: true
+  name: null
+storageClass:
+  accessModes: ReadWriteOnce
+  allowVolumeExpansion: true
+  annotations: {}
+  archiveOnDelete: true
+  create: true
+  defaultClass: true
+  name: nfs-default-storage-class
+  onDelete: null
+  pathPattern: null
+  reclaimPolicy: Delete
+  volumeBindingMode: Immediate
+strategyType: Recreate
+tolerations: []
