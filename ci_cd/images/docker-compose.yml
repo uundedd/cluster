@@ -9,7 +9,7 @@ services:
         - type=registry,ref=${IMAGE_REGISTRY}/base-app/test:13.8.1-cache,mode=max,image-manifest=true
       cache_to:
         - type=registry,ref=${IMAGE_REGISTRY}/base-app/test:13.8.1-cache,mode=max,image-manifest=true
-    image: ${IMAGE_REGISTRY}/${PROJECT_NAME}/test:13.8.1
+    image: ${IMAGE_REGISTRY}/base-app/test:13.8.1
   dind-node-18:
     build:
       context: ./
