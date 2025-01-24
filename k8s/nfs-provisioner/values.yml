@@ -9,9 +9,9 @@ leaderElection:
   enabled: true
 nfs:
   mountOptions: null
-  path: /var/kuber_nfs_storage
+  path: /share/kuber
   reclaimPolicy: Retain
-  server: 192.168.31.238
+  server: 192.168.31.246
   volumeName: nfs-subdir-external-provisioner-root
 nodeSelector: {}
 podAnnotations: {}
@@ -36,8 +36,8 @@ storageClass:
   annotations: {}
   archiveOnDelete: true
   create: true
-  defaultClass: true
-  name: nfs-default-storage-class
+  defaultClass: false
+  name: nfs-test-storage-class
   onDelete: null
   pathPattern: null
   reclaimPolicy: Delete
