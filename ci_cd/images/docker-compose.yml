@@ -1,4 +1,16 @@
 services:
+
+  node-base:
+    build:
+      context: ./
+      dockerfile: ./node-base/Dockerfile
+      args:
+        - IMAGE_REGISTRY=${IMAGE_REGISTRY}
+      cache_from:
+        - type=registry,ref=${IMAGE_REGISTRY}/base-app/node-base:18-cache,mode=max,image-manifest=true
+      cache_to:
+        - type=registry,ref=${IMAGE_REGISTRY}/base-app/node-base:18-cache,mode=max,image-manifest=true
+    image: ${IMAGE_REGISTRY}/base-app/node-base:18
   test:
     build:
       context: ./
