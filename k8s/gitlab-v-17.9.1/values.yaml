@@ -1,18 +1,3 @@
-x-template:
-  image: &base-registry
-    registry: harbor.hyvatech.com
-  selectorToleration: &base-selector
-    testing: "yes"
-    # nodeSelector:
-    #   job: develop
-    # tolerations:
-    #   - key: job
-    #     operator: Equal
-    #     value: develop
-  ingress: &ingress
-    tls: true
-    hostname: gitlab.app.hyvatech.com
-
 ## NOTICE
 #
 # Due to the scope and complexity of this chart, all possible values are
@@ -65,26 +50,27 @@ global:
 
   ## https://docs.gitlab.com/charts/installation/deployment#deploy-the-community-edition
   edition: ce
+
   communityImages:
     # Default repositories used to pull Gitlab Community Edition images.
     # See the image.repository and workhorse.repository template helpers.
     migrations:
       # repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-toolbox-ce
-      repository: kharbor.webpooyan.com/gitlab/gitlab-toolbox-ce
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-toolbox-ce
     sidekiq:
       # repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-sidekiq-ce
-      repository: kharbor.webpooyan.com/gitlab/gitlab-sidekiq-ce
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-sidekiq-ce
     toolbox:
-      repository: kharbor.webpooyan.com/gitlab/gitlab-toolbox-ce
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-toolbox-ce
     webservice:
       # repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-webservice-ce
-      repository: kharbor.webpooyan.com/gitlab/gitlab-webservice-ce
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-webservice-ce
     workhorse:
       # repository: registry.gitlab.com/gitlab-org/build/cng/gitlab-workhorse-ce
-      repository: kharbor.webpooyan.com/gitlab/gitlab-workhorse-ce
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-workhorse-ce
 
   ## https://docs.gitlab.com/charts/charts/globals#gitlab-version
-  gitlabVersion: "17.18"
+  gitlabVersion: "17.9.1"
 
   ## https://docs.gitlab.com/charts/charts/globals#application-resource
   application:
@@ -93,36 +79,39 @@ global:
     allowClusterRoles: true
   ## https://docs.gitlab.com/charts/charts/globals#configure-host-settings
   hosts:
-    domain: kgit.webpooyan.com
-    annotations:
-      kubernetes.io/tls-acme: true
+    domain: git.cluster.hyvatech.com
     hostSuffix:
     https: true
-    externalIP: 185.73.114.89
+    externalIP:
     ssh:
     gitlab:
-      name: web.kgit.webpooyan.com
+      name: web.git.cluster.hyvatech.com
     minio:
-      name: io.kgit.webpooyan.com
+      name: io.git.cluster.hyvatech.com
     registry: {}
-    tls: {}
+    # minikube
+    tls:
+      enabled: false
     smartcard: {}
     kas:
-      name: kagent.kgit.webpooyan.com
+      name: kas.git.cluster.hyvatech.com
     pages: {}
 
   ## https://docs.gitlab.com/charts/charts/globals#configure-ingress-settings
   ingress:
-    class: cilium
+    # minikube
+    class: nginx
     apiVersion: ""
     configureCertmanager: false
     useNewIngressForCerts: false
-    provider: cilium
+    # minikube
+    provider: nginx
     # class:
     annotations: {}
     enabled: true
+    #minikube
     tls:
-      external: true
+      enabled: false
     #   enabled: true
     #   secretName:
     path: /
@@ -147,7 +136,7 @@ global:
 
   # Override enablement of ServiceMonitor and PodMonitor objects.
   monitoring:
-    enabled: true
+    enabled: false
 
   gitlab:
     ## Enterprise license for this GitLab installation
@@ -163,7 +152,6 @@ global:
   ## If allowing shared-secrets generation, this is OPTIONAL.
   initialRootPassword:
     {}
-    # key: Gitlab12345
     # secret: RELEASE-gitlab-initial-root-password
     # key: password
 
@@ -218,6 +206,7 @@ global:
     # writeTimeout: 1
     # host: redis.hostedsomewhere.else
     # port: 6379
+    # database: 0
     # user: webservice
     # sentinels:
     #   - host:
@@ -295,6 +284,8 @@ global:
     usernameChangingEnabled: true
     issueClosingPattern:
     defaultTheme:
+    defaultColorMode:
+    defaultSyntaxHighlightingTheme:
     defaultProjectsFeatures:
       issues: true
       mergeRequests: true
@@ -869,8 +860,7 @@ global:
   # configuration of certificates container & custom CA injection
   certificates:
     image:
-      # repository: registry.gitlab.com/gitlab-org/build/cng/certificates
-      repository: kharbor.webpooyan.com/gitlab/certificates
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/certificates
       # Default tag is `global.gitlabVersion` or `master` if the former one is undefined.
       # tag: master
       # pullPolicy: IfNotPresent
@@ -889,7 +879,7 @@ global:
   ## kubectl image used by hooks to carry out specific jobs
   kubectl:
     image:
-      repository: kharbor.webpooyan.com/gitlab/kubectl
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/kubectl
       # Default tag is `global.gitlabVersion` or `master` if the former one is undefined.
       # tag: master
       # pullPolicy: IfNotPresent
@@ -898,9 +888,11 @@ global:
       # in most base images, this is `nobody:nogroup`
       runAsUser: 65534
       fsGroup: 65534
+      seccompProfile:
+        type: "RuntimeDefault"
   gitlabBase:
     image:
-      repository: kharbor.webpooyan.com/gitlab/gitlab-base
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-base
       # Default tag is `global.gitlabVersion` or `master` if the former one is undefined.
       # Charts using this image as init container support further overrides with `init.image.tag`.
       # tag: master
@@ -912,6 +904,7 @@ global:
     enabled: false
     create: true
     annotations: {}
+    automountServiceAccountToken: false
     ## Name to be used for serviceAccount, otherwise defaults to chart fullname
     # name:
 
@@ -962,7 +955,7 @@ global:
 ## End of global
 
 upgradeCheck:
-  enabled: false
+  enabled: true
   image:
     {}
     # repository:
@@ -973,7 +966,15 @@ upgradeCheck:
     # in alpine/debian/busybox based images, this is `nobody:nogroup`
     runAsUser: 65534
     fsGroup: 65534
-  containerSecurityContext: {}
+    seccompProfile:
+      type: "RuntimeDefault"
+  ## Allow to overwrite the specific security context under which the container is running.
+  containerSecurityContext:
+    runAsUser: 65534
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    capabilities:
+      drop: ["ALL"]
   tolerations: []
   annotations: {}
   configMapAnnotations: {}
@@ -999,7 +1000,7 @@ certmanager:
   # Other cert-manager configurations from upstream
   # See https://github.com/jetstack/cert-manager/blob/master/deploy/charts/cert-manager/README#configuration
   rbac:
-    create: true
+    create: false
 
 ## https://docs.gitlab.com/charts/charts/nginx/
 ## https://docs.gitlab.com/charts/architecture/decisions#nginx-ingress
@@ -1102,6 +1103,8 @@ haproxy:
 ## Installation & configuration of stable/prometheus
 ## See requirements.yaml for current version
 prometheus:
+  image:
+    repository: harbor.hyvatech.com/prometheus/alertmanager
   install: false
   rbac:
     create: true
@@ -1121,6 +1124,26 @@ prometheus:
       type: Recreate
     image:
       tag: v2.38.0
+    containerSecurityContext:
+      runAsUser: 1000
+      allowPrivilegeEscalation: false
+      runAsNonRoot: true
+      capabilities:
+        drop: ["ALL"]
+      seccompProfile:
+        type: "RuntimeDefault"
+  podSecurityPolicy:
+    enabled: false
+  configmapReload:
+    prometheus:
+      containerSecurityContext:
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        capabilities:
+          drop: ["ALL"]
+        seccompProfile:
+          type: "RuntimeDefault"
   serverFiles:
     prometheus.yml:
       scrape_configs:
@@ -1251,21 +1274,17 @@ prometheus:
 redis:
   install: true
   image:
-    registry: kharbor.webpooyan.com
-    repository: gitlab/redis
+    registry: harbor.hyvatech.com
+    tag: "6.2.16-debian-12-r1"
   master:
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
     persistence:
       enabled: true
-      storageClass: "redis-nfs"
-      accessModes:
-        - ReadWriteMany
-      size: 20Gi
+      # minikube
+      # storageClass: "git-redis"
+      # acessModes:
+      #   - ReadWriteMany
+      # size: 20Gi
+
   auth:
     existingSecret: gitlab-redis-secret
     existingSecretKey: redis-password
@@ -1276,8 +1295,8 @@ redis:
   metrics:
     enabled: true
     image:
-      registry: kharbor.webpooyan.com
-      repository: gitlab/redis-exporter
+      tag: "1.46.0-debian-11-r8"
+
 ## Installation & configuration of stable/postgresql
 ## See requirements.yaml for current version
 postgresql:
@@ -1294,8 +1313,7 @@ postgresql:
       adminPasswordKey: postgresql-postgres-password
       userPasswordKey: '{{ include "gitlab.psql.password.key" $ }}'
   image:
-    registry: kharbor.webpooyan.com
-    repository: gitlab/postgresql
+    registry: harbor.hyvatech.com
     tag: 14.8.0
   primary:
     initdb:
@@ -1306,35 +1324,23 @@ postgresql:
         subPath: init_revision.sh
     podAnnotations:
       postgresql.gitlab/init-revision: "1"
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
     persistence:
       enabled: true
-      storageClass: "postgres-nfs"
-      accessModes:
-        - ReadWriteMany
-      size: 20Gi
+      # minikube
+      # storageClass: "git-postgres"
+      # accessModes:
+      #   - ReadWriteMany
+      # size: 20Gi
   metrics:
     enabled: true
     image:
-      registry: kharbor.webpooyan.com
-      repository: gitlab/postgres-exporter
+      registry: harbor.hyvatech.com
     service:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9187"
         gitlab.com/prometheus_scrape: "true"
         gitlab.com/prometheus_port: "9187"
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
 
     ## Optionally define additional custom metrics
     ## ref: https://github.com/wrouesnel/postgres_exporter#adding-new-metrics-via-a-config-file
@@ -1356,14 +1362,7 @@ shared-secrets:
     image:
       # pullPolicy: IfNotPresent
       # pullSecrets: []
-      # repository: registry.gitlab.com/gitlab-org/build/cng/cfssl-self-sign
-      repository: kharbor.webpooyan.com/gitlab/cfssl-self-sign
-      nodeSelector:
-        job: develop
-      tolerations:
-        - key: "job"
-          operator: "Equal"
-          value: "develop"
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/cfssl-self-sign
       # Default tag is `master`, overridable by `global.gitlabVersion`.
       # tag: master
     keyAlgorithm: "rsa"
@@ -1382,12 +1381,14 @@ shared-secrets:
     # in debian/alpine based images, this is `nobody:nogroup`
     runAsUser: 65534
     fsGroup: 65534
-  nodeSelector:
-    job: develop
-  tolerations:
-    - key: "job"
-      operator: "Equal"
-      value: "develop"
+    seccompProfile:
+      type: "RuntimeDefault"
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    capabilities:
+      drop: ["ALL"]
+  tolerations: []
   podLabels: {}
   annotations: {}
 
@@ -1395,24 +1396,20 @@ shared-secrets:
 ## See requirements.yaml for current version
 gitlab-runner:
   image:
-    registry: kharbor.webpooyan.com
-    image: gitlab/gitlab-runner
+    registry: harbor.hyvatech.com
   install: true
+  gitlabUrl: "http://gitlab-webservice-default.gitlab.svc.cluster.local:8181"
   rbac:
     create: true
   runners:
     locked: false
-    tags: "cluster"
-    privileged: true
     # Set secret to an arbitrary value because the runner chart renders the gitlab-runner.secret template only if it is not empty.
     # The parent/GitLab chart overrides the template to render the actual secret name.
     secret: "nonempty"
     config: |
       [[runners]]
         [runners.kubernetes]
-        helper_image = "kharbor.webpooyan.com/gitlab/gitlab-runner-helper:x86_64-v17.3.1"
-        image = "kharbor.webpooyan.com/gitlab/docker:dind-node-18"
-        privileged = true
+        image = "ubuntu:22.04"
         {{- if .Values.global.minio.enabled }}
         [runners.cache]
           Type = "s3"
@@ -1427,12 +1424,9 @@ gitlab-runner:
   podAnnotations:
     gitlab.com/prometheus_scrape: "true"
     gitlab.com/prometheus_port: 9252
-  nodeSelector:
-    job: develop
-  tolerations:
-    - key: "job"
-      operator: "Equal"
-      value: "develop"
+  podSecurityContext:
+    seccompProfile:
+      type: "RuntimeDefault"
 
 traefik:
   install: false
@@ -1447,105 +1441,40 @@ traefik:
 gitlab:
   gitlab-shell:
     image:
-      repository: kharbor.webpooyan.com/gitlab/gitlab-shell
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
-  ## https://docs.gitlab.com/charts/charts/gitlab/toolbox
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-shell
   gitlab-pages:
     image:
-      repository: kharbor.webpooyan.com/gitlab/gitlab-pages
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-pages
   gitaly:
     image:
-      # repository: registry.gitlab.com/gitlab-org/build/cng/gitaly
-      repository: kharbor.webpooyan.com/gitlab/gitaly
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitaly
     persistence:
       enabled: true
-      storageClass: "gitaly-nfs"
-      accessMode: ReadWriteMany
-      size: 50Gi
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
+      # minikube
+      # storageClass: "git-gitaly"
+      # accessMode: ReadWriteMany
+      # size: 50Gi
   praefect:
     image:
-      # repository: registry.gitlab.com/gitlab-org/build/cng/gitaly
-      repository: ${IMAGE_REGISTRY}/gitlab/gitaly
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitaly
   kas:
     image:
-      repository: kharbor.webpooyan.com/gitlab/gitlab-kas
-    ingress:
-      tls:
-        secretName: kas-kgit-webpooyan-com-tls
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
-  webservice:
-    ingress:
-      tls:
-        secretName: gitlab-kgit-webpooyan-com-tls
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-kas
+    # minikube
+    # webservice:
+    # ingress:
+    #   tls:
+    #     secretName: gitlab-webservice-tls
   gitlab-exporter:
     image:
-      repository: kharbor.webpooyan.com/gitlab/gitlab-exporter
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
-  migrations:
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
-  sidekiq:
-    # nodeSelector:
-    #   job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
+      repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-exporter
+
+  ## https://docs.gitlab.com/charts/charts/gitlab/toolbox
   toolbox:
-    nodeSelector:
-      job: develop
-    tolerations:
-      - key: "job"
-        operator: "Equal"
-        value: "develop"
-  # nodeSelector:
-  #   job: develop
-  # tolerations:
-  #   - key: "job"
-  #     operator: "Equal"
-  #     value: "develop"
-  # toolbox:
-  #   replicas: 1
-  #   antiAffinityLabels:
-  #     matchLabels:
-  #       app: gitaly
+    replicas: 1
+    antiAffinityLabels:
+      matchLabels:
+        app: gitaly
   ## https://docs.gitlab.com/charts/charts/gitlab/migrations
   #   migrations:
   #     enabled: false
@@ -1566,26 +1495,7 @@ gitlab:
   #   kas:
   ## https://docs.gitlab.com/charts/charts/gitlab/praefect
   #   praefect:
-minio:
-  image: "kharbor.webpooyan.com/gitlab/minio"
-  imageTag: "RELEASE.2017-12-28T01-21-00Z"
-  minioMc:
-    image: kharbor.webpooyan.com/gitlab/mc
-    tag: "RELEASE.2018-07-13T00-53-22Z"
-  persistence:
-    enabled: true
-    storageClass: "minio-nfs"
-    accessMode: ReadWriteMany
-    size: 30Gi
-  ingress:
-    tls:
-      secretName: minio-kgit-webpooyan-com-tls
-  nodeSelector:
-    job: develop
-  tolerations:
-    - key: "job"
-      operator: "Equal"
-      value: "develop"
+
 ## Installation & configuration of gitlab/gitlab-zoekt
 gitlab-zoekt:
   install: false
@@ -1600,9 +1510,16 @@ gitlab-zoekt:
       secretKey: '{{ include "gitlab.zoekt.indexer.internalApi.secretKey" $ }}'
       gitlabUrl: '{{ include "gitlab.zoekt.indexer.internalApi.gitlabUrl" $ }}'
 
+minio:
+  image: "harbor.hyvatech.com/minio/minio"
+  minioMc:
+    image: harbor.hyvatech.com/minio/mc
+  persistence:
+    enabled: true
+    # storageClass: "git-minio"
+    # accessMode: ReadWriteMany
+    # size: 50Gi
+
 registry:
-  install: false
-  ingress:
-    tls:
-      secretName: registry-kgit-webpooyan-com-tls
-  enabled: false
+  image:
+    repository: harbor.hyvatech.com/gitlab-org/build/cng/gitlab-container-registry
